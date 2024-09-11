@@ -1,7 +1,6 @@
 <!--<img src="https://raw.githubusercontent.com/vandenberghinc/vlib/master/dev/media/icon/icon.green.png" width="150" alt="VLib">-->
-
+# VRepo
 VInc package manager for distributing repositories to git, ssh & npm.
-<br><br>
 
 <p align="start">
     <img src="https://img.shields.io/badge/version-1.0.0-orange" alt="Bergh-Encryption">
