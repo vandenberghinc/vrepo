@@ -5,7 +5,6 @@ VInc package manager for distributing repositories to git, ssh & npm.
 <p align="start">
     <img src="https://img.shields.io/badge/version-1.0.0-orange" alt="Bergh-Encryption">
 </p> 
-<br><br>
 
 ## CLI Usage.
 ```
