@@ -6,7 +6,12 @@ VInc package manager for distributing repositories to git, ssh & npm.
     <img src="https://img.shields.io/badge/version-1.0.0-orange" alt="Bergh-Encryption">
 </p> 
 
-#### CLI Usage.
+#### Installation
+```
+npm install -g @vandenberghinc/vrepo
+```
+
+#### CLI Usage
 ```
 vrepo v1.0.0
 Usage: $ vrepo [mode] [options]
