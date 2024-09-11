@@ -194,150 +194,169 @@ class Git {
 
     // Push through git.
     async push({remote, dest, branch, forced = false, ensure_push = false, log_level = 0}) {
-        return new Promise(async (resolve) => {
+        return new Promise(async (resolve, reject) => {
+            let restore_readme;
+            try {
 
-            // Vars.
-            let err = "";
-            let code = 0;
+                // Vars.
+                let err = "";
+                let code = 0;
 
-            // Prepare.
-            err = await this._git_prepare(remote, dest, branch);
-            if (err) {
-                return resolve(err);
-            }
-            err = "";
-
-            // Set handlers.
-            // let nothing_to_commit = false;
-            this.proc.on_output = (data) => {
-                if (log_level >= 1) {
-                    console.log(data)
+                // Prepare.
+                err = await this._git_prepare(remote, dest, branch);
+                if (err) {
+                    return resolve(err);
                 }
-                // if (data.indexOf("nothing to commit, working tree clean\n") !== -1) {
-                //     nothing_to_commit = true;
-                // }
-            }
-            this.proc.on_error = (data) => {
-                if (log_level >= 1) {
-                    console.log(data)
-                }
-                err += data;
-            }
-            this.proc.on_exit = (_code) => {
-                code = _code;
-                if (code != 0 && err == "") {
-                    err += `Child process exited with code ${code}.`;
-                }
-            }
+                err = "";
 
-            // Replace the {{VERSION}} tag in the README.md.
-            const npm_config_path = this.source.join(`package.json`);
-            if (npm_config_path.exists()) {
-                const version = JSON.parse(npm_config_path.load_sync()).live_version;
+                // Set handlers.
+                // let nothing_to_commit = false;
+                this.proc.on_output = (data) => {
+                    if (log_level >= 1) {
+                        console.log(data)
+                    }
+                    // if (data.indexOf("nothing to commit, working tree clean\n") !== -1) {
+                    //     nothing_to_commit = true;
+                    // }
+                }
+                this.proc.on_error = (data) => {
+                    if (log_level >= 1) {
+                        console.log(data)
+                    }
+                    err += data;
+                }
+                this.proc.on_exit = (_code) => {
+                    code = _code;
+                    if (code != 0 && err == "") {
+                        err += `Child process exited with code ${code}.`;
+                    }
+                }
+
+                // Replace the {{VERSION}} tag in the README.md.
+                let version;
+                if (this.source.join(`package.json`).exists()) {
+                    const data = JSON.parse(this.source.join(`package.json`).load_sync());
+                    version = data.live_version ?? data.version;
+                } else if (this.source.join(`.version.js`).exists()) {
+                    version = require(this.source.join(`.version.js`).str());
+                }
                 if (version) {
                     const readme = this.source.join(`README.md`);
                     if (readme.exists()) {
-                        await readme.save(
-                            (await readme.load()).replaceAll("{{VERSION}}", version)
-                        );
+                        restore_readme = await readme.load();
+                        await readme.save(restore_readme.replaceAll("{{VERSION}}", version));
                     }
-                }
-            }
+                } 
 
-            // Ensure push.
-            if (ensure_push) {
-                const gitignore_path = this.source.join(".gitignore");
-                if (gitignore_path.exists()) {
-                    let data = gitignore_path.load_sync();
-                    if (data.last() === " ") {
-                        data = data.substr(0, data.length - 1);
+                // Ensure push.
+                if (ensure_push) {
+                    const gitignore_path = this.source.join(".gitignore");
+                    if (gitignore_path.exists()) {
+                        let data = gitignore_path.load_sync();
+                        if (data.last() === " ") {
+                            data = data.substr(0, data.length - 1);
+                        } else {
+                            data += " ";
+                        }
+                        gitignore_path.save_sync(data);
                     } else {
-                        data += " ";
+                        gitignore_path.save_sync("");
                     }
-                    gitignore_path.save_sync(data);
-                } else {
-                    gitignore_path.save_sync("");
                 }
-            }
 
-            // Add all data.
-            if (log_level >= 1) {
-                console.log(`Executing ($ git add).`)
-            }
-            await this.proc.start({
-                command: "git",
-                args: ["add", "-A"],
-                working_directory: this.source.str(),
-                interactive: false,
-                env: {
-                     ...process.env,
-                    "GIT_TERMINAL_PROMPT": "0",
-                },
-            })
-            if (log_level >= 1) {
-                console.log(`Command ($ git add) exited with code ${code}.`)
-            }
-            if (err.length > 0) {
-                return resolve("Failed to add files to the git repository:\n" + err);
-            }
-
-            // Commit.
-            if (log_level >= 1) {
-                console.log(`Executing ($ git commit).`)
-            }
-            this.proc.on_exit = (_code) => {
-                code = _code;
-                if (code > 1 && err == "") { // returns error code 1 if there is nothing to commit.
-                    err += `Child process exited with code ${code}.`;
+                // Add all data.
+                if (log_level >= 1) {
+                    console.log(`Executing ($ git add).`)
                 }
-            }
-            await this.proc.start({
-                command: "git",
-                args: ["commit", "-m", "Automatic updates"],
-                working_directory: this.source.str(),
-                interactive: false,
-                env: {
-                    ...process.env,
-                    "GIT_TERMINAL_PROMPT": "0",
-                },
-            })
-            if (log_level >= 1) {
-                console.log(`Command ($ git commit) exited with code ${code}.`)
-            }
-            if (err.length > 0) {
-                return resolve("Failed to commit to the git repository:\n" + err);
-            }
+                await this.proc.start({
+                    command: "git",
+                    args: ["add", "-A"],
+                    working_directory: this.source.str(),
+                    interactive: false,
+                    env: {
+                         ...process.env,
+                        "GIT_TERMINAL_PROMPT": "0",
+                    },
+                })
+                if (log_level >= 1) {
+                    console.log(`Command ($ git add) exited with code ${code}.`)
+                }
+                if (err.length > 0) {
+                    if (restore_readme) {
+                        await this.source.join(`README.md`).save(restore_readme);
+                    }
+                    return resolve("Failed to add files to the git repository:\n" + err);
+                }
 
-            // Push.
-            if (log_level >= 1) {
-                console.log(`Executing ($ git push).`)
-            }
-            err = "";
-            this.proc.on_exit = (_code) => {
-                code = _code;
+                // Commit.
+                if (log_level >= 1) {
+                    console.log(`Executing ($ git commit).`)
+                }
+                this.proc.on_exit = (_code) => {
+                    code = _code;
+                    if (code > 1 && err == "") { // returns error code 1 if there is nothing to commit.
+                        err += `Child process exited with code ${code}.`;
+                    }
+                }
+                await this.proc.start({
+                    command: "git",
+                    args: ["commit", "-m", "Automatic updates"],
+                    working_directory: this.source.str(),
+                    interactive: false,
+                    env: {
+                        ...process.env,
+                        "GIT_TERMINAL_PROMPT": "0",
+                    },
+                })
+                if (log_level >= 1) {
+                    console.log(`Command ($ git commit) exited with code ${code}.`)
+                }
+                if (err.length > 0) {
+                    if (restore_readme) {
+                        await this.source.join(`README.md`).save(restore_readme);
+                    }
+                    return resolve("Failed to commit to the git repository:\n" + err);
+                }
+
+                // Push.
+                if (log_level >= 1) {
+                    console.log(`Executing ($ git push).`)
+                }
+                err = "";
+                this.proc.on_exit = (_code) => {
+                    code = _code;
+                    if (code > 0) {
+                        err += `Child process exited with code ${code}.`;
+                    }
+                }
+                const args = ["push", "-u", remote, branch];
+                if (forced) { args.push("-f"); }
+                await this.proc.start({
+                    command: "git",
+                    args: args,
+                    working_directory: this.source.str(),
+                    interactive: false,
+                    env: {
+                        ...process.env,
+                        "GIT_TERMINAL_PROMPT": "0",
+                    },
+                })
+                if (log_level >= 1) {
+                    console.log(`Command ($ git push) exited with code ${code}.`)
+                }
                 if (code > 0) {
-                    err += `Child process exited with code ${code}.`;
+                    if (restore_readme) {
+                        await this.source.join(`README.md`).save(restore_readme);
+                    }
+                    return resolve("Failed to push the git repository:\n" + err);
                 }
+                resolve();
+            } catch (e) {
+                if (restore_readme) {
+                    await this.source.join(`README.md`).save(restore_readme);
+                }
+                reject(e);
             }
-            const args = ["push", "-u", remote, branch];
-            if (forced) { args.push("-f"); }
-            await this.proc.start({
-                command: "git",
-                args: args,
-                working_directory: this.source.str(),
-                interactive: false,
-                env: {
-                    ...process.env,
-                    "GIT_TERMINAL_PROMPT": "0",
-                },
-            })
-            if (log_level >= 1) {
-                console.log(`Command ($ git push) exited with code ${code}.`)
-            }
-            if (code > 0) {
-                return resolve("Failed to push the git repository:\n" + err);
-            }
-            resolve();
         })
     }
 
