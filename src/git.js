@@ -350,6 +350,9 @@ class Git {
                     }
                     return resolve("Failed to push the git repository:\n" + err);
                 }
+                if (restore_readme) {
+                    await this.source.join(`README.md`).save(restore_readme);
+                }
                 resolve();
             } catch (e) {
                 if (restore_readme) {
