@@ -107,10 +107,10 @@ class Repo {
 			username: this.config.git.username,
 			email: this.config.git.email,
 		});
-		this.npm = !this.npm_enbaled ? undefined : new NPM({
+		this.npm = !this.npm_enabled ? undefined : new NPM({
 			source: this.source.str(),
 		});
-		this.ssh = !this.ssh_enbaled ? undefined : new SSH({
+		this.ssh = !this.ssh_enabled ? undefined : new SSH({
 			source: this.source.str(),
 		});
 	}

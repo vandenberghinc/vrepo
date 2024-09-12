@@ -31,7 +31,7 @@ class NPM {
         // Config file.
         this.config_path = this.source.join(`/package.json`);
         if (!this.config_path.exists()) {
-            return reject(`NPM configuration file "${this.config_path.str()}" does not exist.`);
+            throw new Error(`NPM configuration file "${this.config_path.str()}" does not exist.`);
         }
         this.config = JSON.parse(this.config_path.load_sync());
     }
