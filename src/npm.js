@@ -14,6 +14,7 @@ const {vlib} = require("./vinc.js");
 class NPM {
     constructor({
         source = null,
+        version_path = null,
     } = {}) {
 
         // Verify arguments.
@@ -22,6 +23,7 @@ class NPM {
             check_unknown: true,
             scheme: {
                 source: "string",
+                version_path: "string",
             },
         })
 
@@ -134,7 +136,7 @@ class NPM {
             this.load();
 
             // Export version.
-            const version_export = this.source.join(".version.js");
+            const version_export = new vlib.Path(this.version_path);
             version_export.save_sync(`module.exports="${this.config.version}";`)
 
             // Link when attribute "bin" is defined in the config.

@@ -17,6 +17,7 @@ class Git {
         source = null,
         username = null,
         email = null,
+        version_path = null,
     } = {}) {
 
         // Verify arguments.
@@ -27,6 +28,7 @@ class Git {
                 source: "string",
                 username: "string",
                 email: "string",
+                version_path: "string",
             },
         })
 
@@ -237,8 +239,8 @@ class Git {
                 if (this.source.join(`package.json`).exists()) {
                     const data = JSON.parse(this.source.join(`package.json`).load_sync());
                     version = data.live_version ?? data.version;
-                } else if (this.source.join(`.version.js`).exists()) {
-                    version = require(this.source.join(`.version.js`).str());
+                } else if (new vlib.Path(this.version_path).exists()) {
+                    version = require(this.version_path);
                 }
                 if (version) {
                     const readme = this.source.join(`README.md`);

@@ -50,6 +50,7 @@ class Repo {
 					email: null,
 					remotes: [],
 				},
+				version_path: this.source.join(".version.js").str(),
 			}
 			this.config_path.save_sync(JSON.stringify(this.config))
 		} else {
@@ -98,6 +99,16 @@ class Repo {
 						},
 					},
 				},
+				version_path: {
+					type: 'string',
+					default: this.source.join(".version.js").str(),
+					postprocess(value) {
+						value = value.trim();
+						if (value.trim.startsWith("./")) {
+							value = this.source.join(value.slice(2)).str();
+						}
+					}
+				}
 			}
 		})
 
@@ -106,9 +117,11 @@ class Repo {
 			source: this.source.str(),
 			username: this.config.git.username,
 			email: this.config.git.email,
+			version_path: this.config.version_path,
 		});
 		this.npm = !this.npm_enabled ? undefined : new NPM({
 			source: this.source.str(),
+			version_path: this.config.version_path,
 		});
 		this.ssh = !this.ssh_enabled ? undefined : new SSH({
 			source: this.source.str(),
